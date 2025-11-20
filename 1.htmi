@@ -2,107 +2,199 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>居中可拉伸卡片与字体</title>
+  <title>GOT YOU (归零) - 音乐播放器</title>
   <style>
-    /* 页面容器：让卡片区域垂直+水平居中 */
-    .page-container {
-      min-height: 100vh; /* 占满视口高度 */
-      display: flex;
-      flex-direction: column;
-      justify-content: center; /* 垂直居中 */
-      align-items: center; /* 水平居中 */
-      background: #f9f9f9;
-      padding: 20px 0;
-    }
-
-    /* 卡片容器：控制多张卡片的排列（一行放不下则换行） */
-    .cards-wrapper {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center; /* 卡片行内水平居中 */
-      gap: 20px; /* 卡片间距 */
-      max-width: 1200px;
-      width: 100%;
-      padding: 0 20px;
-    }
-
-    /* 可拉伸卡片 */
-    .resizable-card {
-      width: 300px;
-      height: 400px;
-      min-width: 200px;
-      min-height: 300px;
-      max-width: 600px;
-      max-height: 800px;
-      background: white;
-      border: 2px solid #ddd;
-      border-radius: 8px;
+    /* 整体容器：模拟图中简洁风格 */
+    body {
+      margin: 0;
       padding: 20px;
-      /* 核心：允许拉伸 */
-      resize: both;
-      overflow: auto;
-      /* 字体随卡片自适应（基础值） */
-      font-size: 16px;
-    }
-
-    /* 卡片内图片：自适应卡片大小 */
-    .card-img {
-      width: 100%;
-      height: auto;
-      border-radius: 4px;
-      margin-bottom: 15px;
-    }
-
-    /* 控制栏：调整字体大小（居中显示） */
-    .font-control {
-      margin-top: 30px;
-      padding: 15px 30px;
       background: #f5f5f5;
-      border-radius: 8px;
+      font-family: sans-serif;
+    }
+    .player-container {
+      max-width: 400px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 16px;
+      padding: 30px 20px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+    }
+
+    /* 歌曲信息区域 */
+    .song-info {
       text-align: center;
+      margin-bottom: 20px;
+    }
+    .song-title {
+      font-size: 24px;
+      font-weight: bold;
+      margin: 0;
+    }
+    .song-artist {
+      color: #888;
+      font-size: 14px;
+      margin-top: 5px;
+    }
+
+    /* 封面区域 */
+    .cover-wrapper {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    .cover {
+      width: 80%;
+      border-radius: 8px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+    }
+
+    /* 音频参数显示 */
+    .audio-spec {
+      text-align: center;
+      color: #aaa;
+      font-size: 12px;
+      margin-bottom: 20px;
+    }
+
+    /* 进度条 */
+    .progress-bar {
+      width: 100%;
+      height: 4px;
+      background: #eee;
+      border-radius: 2px;
+      margin-bottom: 20px;
+      position: relative;
+    }
+    .progress-filled {
+      width: 2%; /* 初始进度 */
+      height: 100%;
+      background: #ff4466;
+      border-radius: 2px;
+    }
+    .time-display {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      color: #888;
+      margin-bottom: 30px;
+    }
+
+    /* 控制按钮区域 */
+    .controls {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 30px;
+      margin-bottom: 20px;
+    }
+    .control-btn {
+      background: none;
+      border: none;
+      font-size: 24px;
+      cursor: pointer;
+      color: #333;
+    }
+    .play-btn {
+      font-size: 32px;
+      color: #ff4466;
+    }
+
+    /* 功能按钮区域 */
+    .func-buttons {
+      display: flex;
+      justify-content: center;
+      gap: 30px;
+      font-size: 16px;
+      color: #888;
+    }
+    .func-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: inherit;
     }
   </style>
 </head>
 <body>
-  <div class="page-container">
-    <!-- 卡片容器 -->
-    <div class="cards-wrapper">
-      <!-- 可拉伸卡片1 -->
-      <div class="resizable-card" id="card1">
-        <img src="https://picsum.photos/300/200" class="card-img" alt="示例图">
-        <h3>卡片标题</h3>
-        <p>这是卡片内容，字体大小会随调整按钮变化，卡片可拉伸。</p>
-      </div>
-
-      <!-- 可拉伸卡片2 -->
-      <div class="resizable-card" id="card2">
-        <img src="https://picsum.photos/300/201" class="card-img" alt="示例图">
-        <h3>另一张卡片</h3>
-        <p>多张卡片可独立拉伸，字体大小支持全局调整。</p>
-      </div>
+  <div class="player-container">
+    <!-- 歌曲信息 -->
+    <div class="song-info">
+      <h1 class="song-title">GOT YOU (归零)</h1>
+      <p class="song-artist">三角洲行动 / Lana Mel. / 汪晨蕊</p>
     </div>
 
-    <!-- 字体大小控制栏 -->
-    <div class="font-control">
-      <button onclick="adjustFont(2)">字体放大</button>
-      <button onclick="adjustFont(-2)">字体缩小</button>
-      <span>当前字体大小：<span id="fontSize">16</span>px</span>
+    <!-- 封面图 -->
+    <div class="cover-wrapper">
+      <img src="https://picsum.photos/seed/gotyou/300/300" alt="歌曲封面" class="cover">
+    </div>
+
+    <!-- 音频参数 -->
+    <div class="audio-spec">
+      OpenSL ES &nbsp; FLAC 24 bits &nbsp; 44.1 kHz
+    </div>
+
+    <!-- 进度条 -->
+    <div class="time-display">
+      <span class="current-time">00:04</span>
+      <span class="total-time">03:24</span>
+    </div>
+    <div class="progress-bar">
+      <div class="progress-filled"></div>
+    </div>
+
+    <!-- 播放控制按钮 -->
+    <div class="controls">
+      <button class="control-btn prev-btn">⏮</button>
+      <button class="control-btn play-btn">❙❙</button>
+      <button class="control-btn next-btn">⏭</button>
+    </div>
+
+    <!-- 功能按钮 -->
+    <div class="func-buttons">
+      <button class="func-btn">🔁</button>
+      <button class="func-btn">⏱</button>
+      <button class="func-btn">🎵</button>
+      <button class="func-btn">☰</button>
+      <button class="func-btn">⋯</button>
     </div>
   </div>
 
+  <!-- 音频核心（实际播放用） -->
+  <audio id="audio-player" src="你的本地音乐路径.mp3"></audio>
+
   <script>
-    // 调整字体大小
-    let currentFontSize = 16;
-    function adjustFont(step) {
-      currentFontSize += step;
-      // 限制字体范围
-      currentFontSize = Math.max(12, Math.min(24, currentFontSize));
-      // 应用到所有卡片
-      document.querySelectorAll('.resizable-card').forEach(card => {
-        card.style.fontSize = `${currentFontSize}px`;
-      });
-      // 更新显示
-      document.getElementById('fontSize').textContent = currentFontSize;
+    // 播放控制逻辑
+    const audio = document.getElementById('audio-player');
+    const playBtn = document.querySelector('.play-btn');
+    const progressFilled = document.querySelector('.progress-filled');
+    const currentTimeEl = document.querySelector('.current-time');
+    const totalTimeEl = document.querySelector('.total-time');
+
+    // 播放/暂停切换
+    playBtn.addEventListener('click', () => {
+      if (audio.paused) {
+        audio.play();
+        playBtn.textContent = '❙❙';
+      } else {
+        audio.pause();
+        playBtn.textContent = '▶';
+      }
+    });
+
+    // 进度条更新
+    audio.addEventListener('timeupdate', () => {
+      const progress = (audio.currentTime / audio.duration) * 100;
+      progressFilled.style.width = `${progress}%`;
+      
+      // 时间显示格式化
+      currentTimeEl.textContent = formatTime(audio.currentTime);
+      totalTimeEl.textContent = formatTime(audio.duration);
+    });
+
+    // 时间格式化函数（秒转分:秒）
+    function formatTime(seconds) {
+      const min = Math.floor(seconds / 60);
+      const sec = Math.floor(seconds % 60);
+      return `${min.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
     }
   </script>
 </body>
