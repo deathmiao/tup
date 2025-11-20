@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>居中可拉伸卡片与字体</title>
+  <style>
+    /* 页面容器：让卡片区域垂直+水平居中 */
+    .page-container {
+      min-height: 100vh; /* 占满视口高度 */
+      display: flex;
+      flex-direction: column;
+      justify-content: center; /* 垂直居中 */
+      align-items: center; /* 水平居中 */
+      background: #f9f9f9;
+      padding: 20px 0;
+    }
+
+    /* 卡片容器：控制多张卡片的排列（一行放不下则换行） */
+    .cards-wrapper {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center; /* 卡片行内水平居中 */
+      gap: 20px; /* 卡片间距 */
+      max-width: 1200px;
+      width: 100%;
+      padding: 0 20px;
+    }
+
+    /* 可拉伸卡片 */
+    .resizable-card {
+      width: 300px;
+      height: 400px;
+      min-width: 200px;
+      min-height: 300px;
+      max-width: 600px;
+      max-height: 800px;
+      background: white;
+      border: 2px solid #ddd;
+      border-radius: 8px;
+      padding: 20px;
+      /* 核心：允许拉伸 */
+      resize: both;
+      overflow: auto;
+      /* 字体随卡片自适应（基础值） */
+      font-size: 16px;
+    }
+
+    /* 卡片内图片：自适应卡片大小 */
+    .card-img {
+      width: 100%;
+      height: auto;
+      border-radius: 4px;
+      margin-bottom: 15px;
+    }
+
+    /* 控制栏：调整字体大小（居中显示） */
+    .font-control {
+      margin-top: 30px;
+      padding: 15px 30px;
+      background: #f5f5f5;
+      border-radius: 8px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="page-container">
+    <!-- 卡片容器 -->
+    <div class="cards-wrapper">
+      <!-- 可拉伸卡片1 -->
+      <div class="resizable-card" id="card1">
+        <img src="https://picsum.photos/300/200" class="card-img" alt="示例图">
+        <h3>卡片标题</h3>
+        <p>这是卡片内容，字体大小会随调整按钮变化，卡片可拉伸。</p>
+      </div>
+
+      <!-- 可拉伸卡片2 -->
+      <div class="resizable-card" id="card2">
+        <img src="https://picsum.photos/300/201" class="card-img" alt="示例图">
+        <h3>另一张卡片</h3>
+        <p>多张卡片可独立拉伸，字体大小支持全局调整。</p>
+      </div>
+    </div>
+
+    <!-- 字体大小控制栏 -->
+    <div class="font-control">
+      <button onclick="adjustFont(2)">字体放大</button>
+      <button onclick="adjustFont(-2)">字体缩小</button>
+      <span>当前字体大小：<span id="fontSize">16</span>px</span>
+    </div>
+  </div>
+
+  <script>
+    // 调整字体大小
+    let currentFontSize = 16;
+    function adjustFont(step) {
+      currentFontSize += step;
+      // 限制字体范围
+      currentFontSize = Math.max(12, Math.min(24, currentFontSize));
+      // 应用到所有卡片
+      document.querySelectorAll('.resizable-card').forEach(card => {
+        card.style.fontSize = `${currentFontSize}px`;
+      });
+      // 更新显示
+      document.getElementById('fontSize').textContent = currentFontSize;
+    }
+  </script>
+</body>
+</html>
