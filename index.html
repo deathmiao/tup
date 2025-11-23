@@ -7,23 +7,47 @@
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { width: 100vw; height: 100vh; overflow: hidden; background: #000; }
-        .img-container { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
-        .img-container img { max-width: 90%; max-height: 90%; border-radius: 10px; box-shadow: 0 0 30px rgba(255,105,180,0.5); transition: opacity 0.5s ease; }
-        .btn { position: fixed; top: 50%; transform: translateY(-50%); width: 60px; height: 60px; background: rgba(255,255,255,0.2); border: none; border-radius: 50%; color: white; font-size: 24px; cursor: pointer; transition: background 0.3s; }
-        .prev-btn { left: 30px; }
-        .next-btn { right: 30px; }
-        .btn:hover { background: rgba(255,105,180,0.5); }
+        .img-container { 
+            width: 100%; 
+            height: 100%; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            position: relative; /* 用于承载点击区域 */
+        }
+        /* 左右点击区域（占满整个容器，分左右两半） */
+        .img-container .click-area {
+            position: absolute;
+            top: 0;
+            width: 50%;
+            height: 100%;
+            cursor: pointer;
+            z-index: 10; /* 确保点击区域在图片上方 */
+        }
+        .img-container .prev-area { left: 0; }
+        .img-container .next-area { right: 0; }
+        .img-container img { 
+            max-width: 90%; 
+            max-height: 90%; 
+            border-radius: 10px; 
+            box-shadow: none; 
+            transition: opacity 0.5s ease; 
+            opacity: 0;
+        }
+        .img-container img.loaded {
+            opacity: 1;
+        }
     </style>
 </head>
 <body>
     <div class="img-container">
+        <!-- 左右点击区域 -->
+        <div class="click-area prev-area" onclick="changeImg(-1)"></div>
+        <div class="click-area next-area" onclick="changeImg(1)"></div>
         <img id="currentImg" src="" alt="二次元图片">
     </div>
-    <button class="btn prev-btn" onclick="changeImg(-1)">←</button>
-    <button class="btn next-btn" onclick="changeImg(1)">→</button>
 
     <script>
-        // 二次元图片链接列表（可替换自己的收藏图）
         const imgList = [
             'https://picsum.photos/1920/1080?random=20',
             'https://picsum.photos/1920/1080?random=21',
@@ -32,17 +56,25 @@
             'https://picsum.photos/1920/1080?random=24'
         ];
         let currentIndex = 0;
+        const imgElement = document.getElementById('currentImg');
 
-        // 初始化显示第一张图
-        window.onload = () => {
-            document.getElementById('currentImg').src = imgList[currentIndex];
-        };
+        function loadImage() {
+            imgElement.style.opacity = 0;
+            imgElement.onload = () => {
+                imgElement.classList.add('loaded');
+            };
+            imgElement.src = imgList[currentIndex];
+        }
+
+        window.onload = loadImage;
 
         function changeImg(direction) {
             currentIndex += direction;
-            // 循环切换
             if (currentIndex < 0) currentIndex = imgList.length - 1;
             if (currentIndex >= imgList.length) currentIndex = 0;
+            imgElement.classList.remove('loaded');
+            setTimeout(loadImage, 300);
+        }
     </script>
 </body>
 </html>
