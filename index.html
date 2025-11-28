@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>仿B站移动端手势滑动</title>
+    <title>仿B站移动端滑动加载</title>
     <style>
         * {
             margin: 0;
@@ -13,9 +13,8 @@
         }
         body {
             background-color: #f5f5f5;
-            overflow: hidden;
         }
-        /* 顶部导航 - 匹配截图搜索框文字+消息红点 */
+        /* 顶部导航栏 */
         .header {
             position: fixed;
             top: 0;
@@ -45,60 +44,30 @@
             background: transparent;
             width: 100%;
             font-size: 14px;
-            color: #999;
-        }
-        .header-right {
-            display: flex;
-            align-items: center;
-        }
-        .msg-icon {
-            font-size: 20px;
-            color: #666;
-            position: relative;
-            margin-right: 8px;
-        }
-        .msg-badge {
-            position: absolute;
-            top: -5px;
-            right: -5px;
-            background-color: #f00;
-            color: #fff;
-            font-size: 10px;
-            width: 16px;
-            height: 16px;
-            border-radius: 50%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
         }
         .avatar {
             width: 32px;
             height: 32px;
             border-radius: 50%;
-            background-color: #ccc;
-            background-image: url(https://p3-passport.byteacctimg.com/img/user-avatar/899d4711947d1935411459154258561d~300x300.image);
-            background-size: cover;
+            background-color: #fb7299;
         }
-        /* 标签栏 - 推荐标签默认绿色选中 */
-        .tab-container {
+        /* 标签栏 */
+        .tab-bar {
             position: fixed;
             top: 50px;
             left: 0;
             right: 0;
             height: 44px;
             background-color: #fff;
-            border-bottom: 1px solid #eee;
-            z-index: 99;
-            overflow: hidden;
-        }
-        .tab-bar {
-            height: 100%;
             display: flex;
             align-items: center;
-            position: absolute;
-            left: 0;
-            top: 0;
-            transition: left 0.3s ease;
+            overflow-x: auto;
+            white-space: nowrap;
+            border-bottom: 1px solid #eee;
+            z-index: 99;
+        }
+        .tab-bar::-webkit-scrollbar {
+            display: none;
         }
         .tab-item {
             padding: 0 15px;
@@ -106,44 +75,20 @@
             line-height: 44px;
             font-size: 15px;
             color: #666;
-            white-space: nowrap;
-            cursor: pointer;
         }
         .tab-item.active {
-            color: #5fb878;
-            border-bottom: 2px solid #5fb878;
+            color: #fb7299;
+            border-bottom: 2px solid #fb7299;
         }
-        /* 内容容器 */
-        .content-wrapper {
-            position: fixed;
-            top: 94px;
-            left: 0;
-            right: 0;
-            bottom: 50px;
-            display: flex;
-            overflow-x: auto;
-            overflow-y: hidden;
-            scroll-snap-type: x mandatory;
-            -webkit-overflow-scrolling: touch;
-        }
-        .content-wrapper::-webkit-scrollbar {
-            display: none;
-        }
-        .content-item {
-            width: 100vw;
-            height: 100%;
-            overflow-y: auto;
-            scroll-snap-align: start;
-            scroll-behavior: smooth;
-            padding-bottom: 20px;
-        }
-        /* 视频列表 - 匹配截图的卡片间距和样式 */
+        /* 视频列表 */
         .video-list {
-            padding: 8px;
+            margin-top: 94px;
+            padding: 10px;
             display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 8px;
+            grid-template-columns: 1fr 1fr; /* 两列布局（B站移动端） */
+            gap: 10px;
         }
+        /* 视频卡片 */
         .video-card {
             background-color: #fff;
             border-radius: 8px;
@@ -152,59 +97,54 @@
         .video-cover {
             width: 100%;
             aspect-ratio: 16/9;
-            position: relative;
             background-color: #ccc;
-            background-size: cover;
-            background-position: center;
+            position: relative;
         }
         .video-time {
             position: absolute;
-            bottom: 4px;
-            right: 4px;
+            bottom: 5px;
+            right: 5px;
             background-color: rgba(0,0,0,0.7);
             color: #fff;
-            font-size: 11px;
-            padding: 1px 4px;
-            border-radius: 2px;
+            font-size: 12px;
+            padding: 2px 5px;
+            border-radius: 3px;
         }
         .video-info {
-            padding: 6px;
+            padding: 8px;
         }
         .video-title {
-            font-size: 13px;
+            font-size: 14px;
             color: #333;
-            line-height: 1.3;
+            line-height: 1.4;
             display: -webkit-box;
-            -webkit-line-clamp: 2;
+            -webkit-line-clamp: 2; /* 标题两行省略 */
             -webkit-box-orient: vertical;
             overflow: hidden;
-            margin-bottom: 4px;
-            height: 34px;
+            margin-bottom: 5px;
+        }
+        .video-author {
+            font-size: 12px;
+            color: #999;
+            margin-bottom: 3px;
         }
         .video-data {
             font-size: 11px;
             color: #999;
             display: flex;
             align-items: center;
-            gap: 6px;
         }
-        .video-author {
-            font-size: 11px;
+        /* 加载中提示 */
+        .loading {
+            height: 50px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 14px;
             color: #999;
-            margin-bottom: 2px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
+            grid-column: 1 / 3; /* 跨两列 */
         }
-        .follow-tag {
-            background-color: #f0f0f0;
-            color: #666;
-            font-size: 9px;
-            padding: 1px 3px;
-            border-radius: 2px;
-            margin-right: 4px;
-        }
-        /* 底部导航 - 改为首页/动态/我的 */
+        /* 底部导航 */
         .bottom-nav {
             position: fixed;
             bottom: 0;
@@ -221,208 +161,139 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            font-size: 11px;
+            font-size: 12px;
             color: #666;
         }
         .nav-item.active {
-            color: #5fb878;
+            color: #fb7299;
         }
         .nav-icon {
             font-size: 20px;
             margin-bottom: 2px;
         }
     </style>
+    <!-- 引入图标库（替代B站图标） -->
     <link rel="stylesheet" href="https://cdn.bootcdn.net/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
+    <!-- 顶部导航 -->
     <div class="header">
         <<i class="fa fa-search" style="font-size: 18px; color: #666;"></</i>
         <div class="search-box">
-            <input type="text" placeholder="可笑的是直到他死的那一刻 他也没能意..." value="可笑的是直到他死的那一刻 他也没能意..." readonly>
+            <input type="text" placeholder="quest 3">
         </div>
-        <div class="header-right">
-            <div class="msg-icon">
-                <<i class="fa fa-bell"></</i>
-                <span class="msg-badge">99+</span>
-            </div>
-            <div class="avatar"></div>
-        </div>
+        <div class="avatar"></div>
     </div>
 
-    <div class="tab-container">
-        <div class="tab-bar" id="tabBar">
-            <div class="tab-item" data-index="0">直播</div>
-            <div class="tab-item active" data-index="1">推荐</div>
-            <div class="tab-item" data-index="2">热门</div>
-            <div class="tab-item" data-index="3">分区</div>
-            <div class="tab-item" data-index="4">番剧</div>
-            <div class="tab-item" data-index="5">影视</div>
-        </div>
+    <!-- 标签栏 -->
+    <div class="tab-bar">
+        <div class="tab-item">直播</div>
+        <div class="tab-item active">推荐</div>
+        <div class="tab-item">热门</div>
+        <div class="tab-item">分区</div>
+        <div class="tab-item">番剧</div>
+        <div class="tab-item">影视</div>
     </div>
 
-    <div class="content-wrapper" id="contentWrapper">
-        <div class="content-item"><div class="video-list" id="liveList"></div></div>
-        <div class="content-item"><div class="video-list" id="recommendList"></div></div>
-        <div class="content-item"><div class="video-list" id="hotList"></div></div>
-        <div class="content-item"><div class="video-list" id="categoryList"></div></div>
-        <div class="content-item"><div class="video-list" id="animeList"></div></div>
-        <div class="content-item"><div class="video-list" id="movieList"></div></div>
+    <!-- 视频列表 -->
+    <div class="video-list" id="videoList">
+        <!-- 视频卡片由JS动态生成 -->
     </div>
 
+    <!-- 加载提示 -->
+    <div class="loading" id="loading">加载中...</div>
+
+    <!-- 底部导航 -->
     <div class="bottom-nav">
         <div class="nav-item active">
             <div class="nav-icon"><<i class="fa fa-home"></</i></div>
             <span>首页</span>
         </div>
         <div class="nav-item">
-            <div class="nav-icon"><<i class="fa fa-refresh"></</i></div>
+            <div class="nav-icon"><<i class="fa fa-bell"></</i></div>
             <span>动态</span>
         </div>
         <div class="nav-item">
-            <div class="nav-icon"><<i class="fa fa-user"></</i></div>
-            <span>我的</span>
+            <div class="nav-icon"><<i class="fa fa-video"></</i></div>
+            <span>媒体库</span>
         </div>
     </div>
 
     <script>
-        // 匹配截图的推荐页视频数据
-        const videoData = {
-            live: [
-                { title: "【直播】原神新版本开荒", author: "原神阿婆主", play: "2.3万", danmu: "120", time: "01:20", cover: "https://p3-video.byteimg.com/tos-cn-p-0015/37c0291956494740926615f124760911~tplv-a9rns2rl98-image.image" },
-                { title: "LOL排位冲分", author: "联盟大神", play: "1.8万", danmu: "89", time: "02:15", cover: "https://p3-video.byteimg.com/tos-cn-p-0015/4a0705589c674689890c89f959926085~tplv-a9rns2rl98-image.image" },
-                { title: "美食制作：红烧肉", author: "吃货主播", play: "9800", danmu: "56", time: "00:45", cover: "https://p3-video.byteimg.com/tos-cn-p-0015/08e7018991854a96a407826e0d968917~tplv-a9rns2rl98-image.image" },
-                { title: "赛博朋克2077实况", author: "游戏菌", play: "1.2万", danmu: "78", time: "03:05", cover: "https://p3-video.byteimg.com/tos-cn-p-0015/6660909909894906899090990989490~tplv-a9rns2rl98-image.image" }
-            ],
-            recommend: [
-                { title: "小班小破表强行提取怪兽DNA变身", author: "小琳爱带土", play: "1471", danmu: "0", time: "15:36", cover: "https://p3-video.byteimg.com/tos-cn-p-0015/12345678901234567890123456789012~tplv-a9rns2rl98-image.image" },
-                { title: "你选择谁", author: "鼠不恼", play: "1739", danmu: "1", time: "00:13", cover: "https://p3-video.byteimg.com/tos-cn-p-0015/23456789012345678901234567890123~tplv-a9rns2rl98-image.image" },
-                { title: "他花3毛钱买了份早饭，还没结完账的功夫，店员就已经...", author: "晴儿爱猎奇", play: "1.2万", danmu: "11", time: "12:05", cover: "https://p3-video.byteimg.com/tos-cn-p-0015/34567890123456789012345678901234~tplv-a9rns2rl98-image.image" },
-                { title: "02年女生毕业回村生活", author: "张德美Mei", play: "9.4万", danmu: "98", time: "04:31", cover: "https://p3-video.byteimg.com/tos-cn-p-0015/45678901234567890123456789012345~tplv-a9rns2rl98-image.image" },
-                { title: "格蕾修 Queencard (20251117)", author: "无所事事青叶酱", play: "5.2万", danmu: "4", time: "02:42", cover: "https://p3-video.byteimg.com/tos-cn-p-0015/56789012345678901234567890123456~tplv-a9rns2rl98-image.image", isFollow: true },
-                { title: "胶水居然和汽车减重有关系？", author: "爱思考的老梨", play: "18万", danmu: "171", time: "11:59", cover: "https://p3-video.byteimg.com/tos-cn-p-0015/67890123456789012345678901234567~tplv-a9rns2rl98-image.image" }
-            ],
-            hot: [
-                { title: "小姐..你的新涂装强的可怕", author: "小正义teio ku", play: "1.2万", danmu: "26", time: "00:22", cover: "https://p3-video.byteimg.com/tos-cn-p-0015/78901234567890123456789012345678~tplv-a9rns2rl98-image.image" },
-                { title: "【毕导】而只有开", author: "毕导", play: "54.4万", danmu: "1200", time: "12:21", cover: "https://p3-video.byteimg.com/tos-cn-p-0015/89012345678901234567890123456789~tplv-a9rns2rl98-image.image" },
-                { title: "为乐高城市医院", author: "小都", play: "6万", danmu: "300", time: "25:52", cover: "https://p3-video.byteimg.com/tos-cn-p-0015/90123456789012345678901234567890~tplv-a9rns2rl98-image.image" },
-                { title: "大战结束了？饿了美团彻底打没了", author: "顿", play: "8.9万", danmu: "23", time: "07:35", cover: "https://p3-video.byteimg.com/tos-cn-p-0015/01234567890123456789012345678901~tplv-a9rns2rl98-image.image" }
-            ],
-            category: [
-                { title: "永劫无间教学", author: "永劫大神", play: "10.2万", danmu: "500", time: "15:30", cover: "https://p3-video.byteimg.com/tos-cn-p-0015/11234567890123456789012345678901~tplv-a9rns2rl98-image.image" },
-                { title: "沉浸式打扫房间", author: "清洁达人", play: "7.8万", danmu: "300", time: "20:15", cover: "https://p3-video.byteimg.com/tos-cn-p-0015/21234567890123456789012345678901~tplv-a9rns2rl98-image.image" },
-                { title: "经济学小课堂", author: "经济教授", play: "5.6万", danmu: "200", time: "30:05", cover: "https://p3-video.byteimg.com/tos-cn-p-0015/31234567890123456789012345678901~tplv-a9rns2rl98-image.image" },
-                { title: "经典名场面改编", author: "鬼畜UP", play: "15.3万", danmu: "800", time: "05:40", cover: "https://p3-video.byteimg.com/tos-cn-p-0015/41234567890123456789012345678901~tplv-a9rns2rl98-image.image" }
-            ],
-            anime: [
-                { title: "某科学的深空海", author: "动漫菌", play: "23.5万", danmu: "1000", time: "24:10", cover: "https://p3-video.byteimg.com/tos-cn-p-0015/51234567890123456789012345678901~tplv-a9rns2rl98-image.image" },
-                { title: "火影忍者解说", author: "火影迷", play: "18.7万", danmu: "900", time: "18:25", cover: "https://p3-video.byteimg.com/tos-cn-p-0015/61234567890123456789012345678901~tplv-a9rns2rl98-image.image" },
-                { title: "童年经典：数码宝贝", author: "怀旧党", play: "32.1万", danmu: "1500", time: "12:10", cover: "https://p3-video.byteimg.com/tos-cn-p-0015/71234567890123456789012345678901~tplv-a9rns2rl98-image.image" },
-                { title: "灵笼第二季预告", author: "国漫粉", play: "45.2万", danmu: "2000", time: "03:15", cover: "https://p3-video.byteimg.com/tos-cn-p-0015/81234567890123456789012345678901~tplv-a9rns2rl98-image.image" }
-            ],
-            movie: [
-                { title: "流浪地球3解说", author: "影评人", play: "67.8万", danmu: "3000", time: "15:40", cover: "https://p3-video.byteimg.com/tos-cn-p-0015/91234567890123456789012345678901~tplv-a9rns2rl98-image.image" },
-                { title: "肖申克的救赎", author: "电影迷", play: "38.5万", danmu: "1800", time: "20:30", cover: "https://p3-video.byteimg.com/tos-cn-p-0015/02234567890123456789012345678901~tplv-a9rns2rl98-image.image" },
-                { title: "繁花解析", author: "剧评UP", play: "29.4万", danmu: "1200", time: "12:25", cover: "https://p3-video.byteimg.com/tos-cn-p-0015/12234567890123456789012345678901~tplv-a9rns2rl98-image.image" },
-                { title: "地球脉动", author: "自然爱好者", play: "17.6万", danmu: "800", time: "45:10", cover: "https://p3-video.byteimg.com/tos-cn-p-0015/22234567890123456789012345678901~tplv-a9rns2rl98-image.image" }
-            ]
-        };
+        // 模拟视频数据
+        const videoData = [
+            { title: "BJ雷颖", author: "孤秒", play: "4537", time: "05:05", date: "3天前" },
+            { title: "命苦就命苦 还忧郁是天赋", author: "妮蔻-主Ren", play: "9168", time: "00:10", date: "11月22日" },
+            { title: "电动车两天烧了三个控制器，好在电机没坏", author: "初心维修阿凡", play: "3.5万", time: "04:01", date: "9月25日" },
+            { title: "最新 Quest3、3s全流程注册+激活+领60美刀+...", author: "爱玩VR的杰林", play: "7970", time: "1:33", date: "11月19日" },
+            { title: "【巫师】AI下一个要搞死的行业是什么", author: "巫师", play: "52.2万", time: "07:19", date: "23小时前" },
+            { title: "一根牙签就能给盒饭加热？二十年前的自热…", author: "怀旧玩家", play: "1.9万", time: "03:03", date: "昨天" }
+        ];
 
-        // 元素获取
-        const tabBar = document.getElementById('tabBar');
-        const contentWrapper = document.getElementById('contentWrapper');
-        const tabItems = document.querySelectorAll('.tab-item');
-        let currentIndex = 1; // 默认选中推荐标签
-        let startX = 0;
-        let isScrolling = false;
+        // 页码和加载状态
+        let page = 1;
+        let isLoading = false;
+        const videoList = document.getElementById('videoList');
+        const loading = document.getElementById('loading');
 
-        // 渲染视频列表
-        function renderVideoList(id, data) {
-            const list = document.getElementById(id);
-            list.innerHTML = '';
+        // 生成视频卡片
+        function renderVideoCards(data) {
             data.forEach(video => {
                 const card = document.createElement('div');
                 card.className = 'video-card';
-                // 处理已关注标签
-                const followTag = video.isFollow ? '<span class="follow-tag">已关注</span>' : '';
                 card.innerHTML = `
-                    <div class="video-cover" style="background-image: url(${video.cover})">
+                    <div class="video-cover">
                         <div class="video-time">${video.time}</div>
                     </div>
                     <div class="video-info">
                         <div class="video-title">${video.title}</div>
-                        <div class="video-author">${followTag}${video.author}</div>
+                        <div class="video-author">${video.author}</div>
                         <div class="video-data">
-                            <span><<i class="fa fa-play-circle-o" style="margin-right: 2px;"></</i>${video.play}</span>
-                            <span><<i class="fa fa-comment-o" style="margin-right: 2px;"></</i>${video.danmu}</span>
+                            <<i class="fa fa-play-circle-o" style="margin-right: 3px;"></</i>${video.play}
+                            <span style="margin-left: 5px;">${video.date}</span>
                         </div>
                     </div>
                 `;
-                list.appendChild(card);
+                videoList.appendChild(card);
             });
         }
 
-        // 初始化所有列表
-        function initAllLists() {
-            renderVideoList('liveList', videoData.live);
-            renderVideoList('recommendList', videoData.recommend);
-            renderVideoList('hotList', videoData.hot);
-            renderVideoList('categoryList', videoData.category);
-            renderVideoList('animeList', videoData.anime);
-            renderVideoList('movieList', videoData.movie);
-        }
+        // 初始加载第一页
+        renderVideoCards(videoData);
 
-        // 切换标签页
-        function switchTab(index) {
-            if (index < 0 || index >= tabItems.length || isScrolling) return;
-            isScrolling = true;
-
-            tabItems.forEach(item => item.classList.remove('active'));
-            tabItems[index].classList.add('active');
-            contentWrapper.scrollTo({ left: index * window.innerWidth, behavior: 'smooth' });
-            adjustTabBar(index);
-
-            setTimeout(() => {
-                currentIndex = index;
-                isScrolling = false;
-            }, 300);
-        }
-
-        // 调整标签栏位置
-        function adjustTabBar(index) {
-            const tabItem = tabItems[index];
-            const containerWidth = document.querySelector('.tab-container').offsetWidth;
-            const targetLeft = tabItem.offsetLeft - (containerWidth - tabItem.offsetWidth) / 2;
-            const maxLeft = tabBar.offsetWidth - containerWidth;
-            tabBar.style.left = -Math.max(0, Math.min(targetLeft, maxLeft)) + 'px';
-        }
-
-        // 事件监听
-        tabItems.forEach(item => {
-            item.addEventListener('click', () => switchTab(parseInt(item.dataset.index)));
-        });
-
-        contentWrapper.addEventListener('touchstart', (e) => {
-            startX = e.touches[0].clientX;
-            isScrolling = false;
-        });
-
-        contentWrapper.addEventListener('touchend', (e) => {
-            const diffX = e.changedTouches[0].clientX - startX;
-            if (Math.abs(diffX) > 50 && !isScrolling) {
-                switchTab(diffX > 0 ? currentIndex - 1 : currentIndex + 1);
+        // 监听滚动事件：滑动到底部加载更多
+        window.addEventListener('scroll', () => {
+            // 计算滚动位置：文档高度 - 视口高度 - 滚动条位置 < 100px 表示接近底部
+            const scrollBottom = document.documentElement.scrollHeight - window.innerHeight - document.documentElement.scrollTop;
+            if (scrollBottom < 100 && !isLoading) {
+                loadMore();
             }
         });
 
-        contentWrapper.addEventListener('scroll', () => {
-            const index = Math.round(contentWrapper.scrollLeft / window.innerWidth);
-            if (index !== currentIndex && !isScrolling) switchTab(index);
-        });
+        // 加载更多数据
+        function loadMore() {
+            isLoading = true;
+            loading.textContent = '加载中...';
+            
+            // 模拟接口请求延迟
+            setTimeout(() => {
+                page++;
+                // 模拟更多数据（实际项目中替换为真实接口请求）
+                const moreData = videoData.map(item => ({
+                    ...item,
+                    title: `${item.title}（第${page}页）`
+                }));
+                renderVideoCards(moreData);
+                
+                isLoading = false;
+                loading.textContent = '上滑加载更多';
 
-        // 页面加载初始化
-        window.addEventListener('load', () => {
-            initAllLists();
-            adjustTabBar(currentIndex);
-        });
+                // 模拟无更多数据
+                if (page > 3) {
+                    loading.textContent = '没有更多内容了';
+                }
+            }, 1000);
+        }
     </script>
 </body>
 </html>
