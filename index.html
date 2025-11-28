@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>仿B站移动端滑动加载</title>
+    <title>仿B站移动端完整版（滑动+加载）</title>
     <style>
         * {
             margin: 0;
@@ -13,8 +13,11 @@
         }
         body {
             background-color: #f5f5f5;
+            overflow: hidden;
+            user-select: none;
+            -webkit-user-select: none;
         }
-        /* 顶部导航栏 */
+        /* 顶部导航栏（整合优化） */
         .header {
             position: fixed;
             top: 0;
@@ -22,11 +25,16 @@
             right: 0;
             height: 50px;
             background-color: #fff;
-            padding: 0 10px;
+            padding: 0 12px;
             display: flex;
             align-items: center;
             border-bottom: 1px solid #eee;
             z-index: 100;
+        }
+        .search-icon {
+            font-size: 18px;
+            color: #666;
+            margin-right: 8px;
         }
         .search-box {
             flex: 1;
@@ -44,6 +52,7 @@
             background: transparent;
             width: 100%;
             font-size: 14px;
+            color: #999;
         }
         .avatar {
             width: 32px;
@@ -51,23 +60,29 @@
             border-radius: 50%;
             background-color: #fb7299;
         }
-        /* 标签栏 */
-        .tab-bar {
+        /* 顶部标签栏（保留顺滑滑动优化） */
+        .tab-container {
             position: fixed;
             top: 50px;
             left: 0;
             right: 0;
             height: 44px;
             background-color: #fff;
-            display: flex;
-            align-items: center;
-            overflow-x: auto;
-            white-space: nowrap;
             border-bottom: 1px solid #eee;
+            overflow: hidden;
+            position: relative;
             z-index: 99;
         }
-        .tab-bar::-webkit-scrollbar {
-            display: none;
+        .tab-bar {
+            display: flex;
+            height: 100%;
+            align-items: center;
+            position: absolute;
+            left: 0;
+            top: 0;
+            transition: left 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+            transform: translateZ(0);
+            -webkit-transform: translateZ(0);
         }
         .tab-item {
             padding: 0 15px;
@@ -75,25 +90,57 @@
             line-height: 44px;
             font-size: 15px;
             color: #666;
+            white-space: nowrap;
+            -webkit-tap-highlight-color: transparent;
             cursor: pointer;
         }
         .tab-item.active {
             color: #fb7299;
             border-bottom: 2px solid #fb7299;
         }
-        /* 视频列表 */
-        .video-list {
-            margin-top: 94px;
+        /* 内容滑动容器（整合滑动+滚动加载） */
+        .content-wrapper {
+            position: fixed;
+            top: 94px;
+            left: 0;
+            right: 0;
+            bottom: 50px;
+            display: flex;
+            overflow-x: auto;
+            overflow-y: hidden;
+            scroll-snap-type: x mandatory;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+            overscroll-behavior-x: contain;
+        }
+        .content-wrapper::-webkit-scrollbar {
+            display: none;
+        }
+        /* 内容页（保留硬件加速+滚动优化） */
+        .content-page {
+            width: 100vw;
+            height: 100%;
+            flex-shrink: 0;
+            scroll-snap-align: start;
+            overflow-y: auto;
             padding: 10px;
+            transform: translateZ(0);
+            -webkit-transform: translateZ(0);
+            -webkit-overflow-scrolling: touch;
+        }
+        /* 视频列表（整合两列布局+间距优化） */
+        .video-list {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 10px;
+            contain: layout paint;
         }
-        /* 视频卡片 */
+        /* 视频卡片（整合双方样式优势） */
         .video-card {
             background-color: #fff;
             border-radius: 8px;
             overflow: hidden;
+            -webkit-tap-highlight-color: transparent;
             box-shadow: 0 1px 2px rgba(0,0,0,0.05);
         }
         .video-cover {
@@ -101,6 +148,7 @@
             aspect-ratio: 16/9;
             background: linear-gradient(45deg, #fb7299, #00a1d6);
             position: relative;
+            transform: translateZ(0);
         }
         .video-time {
             position: absolute;
@@ -108,7 +156,7 @@
             right: 5px;
             background-color: rgba(0,0,0,0.7);
             color: #fff;
-            font-size: 12px;
+            font-size: 11px;
             padding: 2px 5px;
             border-radius: 3px;
         }
@@ -119,11 +167,11 @@
             font-size: 14px;
             color: #333;
             line-height: 1.4;
+            margin-bottom: 5px;
             display: -webkit-box;
             -webkit-line-clamp: 2;
             -webkit-box-orient: vertical;
             overflow: hidden;
-            margin-bottom: 5px;
         }
         .video-author {
             font-size: 12px;
@@ -136,7 +184,15 @@
             display: flex;
             align-items: center;
         }
-        /* 加载中提示 */
+        .video-data i {
+            font-size: 12px;
+            margin-right: 4px;
+            margin-left: 8px;
+        }
+        .video-data span:first-child i {
+            margin-left: 0;
+        }
+        /* 加载中提示（保留第二段代码功能） */
         .loading {
             height: 50px;
             display: flex;
@@ -146,7 +202,7 @@
             color: #999;
             grid-column: 1 / 3;
         }
-        /* 底部导航 */
+        /* 底部导航（整合优化） */
         .bottom-nav {
             position: fixed;
             bottom: 0;
@@ -158,6 +214,7 @@
             justify-content: space-around;
             align-items: center;
             border-top: 1px solid #eee;
+            z-index: 98;
         }
         .nav-item {
             display: flex;
@@ -165,6 +222,7 @@
             align-items: center;
             font-size: 12px;
             color: #666;
+            -webkit-tap-highlight-color: transparent;
         }
         .nav-item.active {
             color: #fb7299;
@@ -179,28 +237,58 @@
 <body>
     <!-- 顶部导航 -->
     <div class="header">
-        <i class="fa fa-search" style="font-size: 18px; color: #666;"></i>
+        <i class="fa fa-search search-icon"></i>
         <div class="search-box">
             <input type="text" placeholder="quest 3">
         </div>
         <div class="avatar"></div>
     </div>
 
-    <!-- 标签栏 -->
-    <div class="tab-bar">
-        <div class="tab-item">直播</div>
-        <div class="tab-item active">推荐</div>
-        <div class="tab-item">热门</div>
-        <div class="tab-item">分区</div>
-        <div class="tab-item">番剧</div>
-        <div class="tab-item">影视</div>
+    <!-- 顶部标签栏 -->
+    <div class="tab-container">
+        <div class="tab-bar" id="tabBar">
+            <div class="tab-item active" data-index="0">直播</div>
+            <div class="tab-item" data-index="1">推荐</div>
+            <div class="tab-item" data-index="2">热门</div>
+            <div class="tab-item" data-index="3">分区</div>
+            <div class="tab-item" data-index="4">番剧</div>
+            <div class="tab-item" data-index="5">影视</div>
+        </div>
     </div>
 
-    <!-- 视频列表 -->
-    <div class="video-list" id="videoList"></div>
-
-    <!-- 加载提示 -->
-    <div class="loading" id="loading">加载中...</div>
+    <!-- 内容滑动容器 -->
+    <div class="content-wrapper" id="contentWrapper">
+        <!-- 直播页 -->
+        <div class="content-page" id="livePage">
+            <div class="video-list" id="liveList"></div>
+            <div class="loading" id="liveLoading">加载中...</div>
+        </div>
+        <!-- 推荐页 -->
+        <div class="content-page" id="recommendPage">
+            <div class="video-list" id="recommendList"></div>
+            <div class="loading" id="recommendLoading">加载中...</div>
+        </div>
+        <!-- 热门页 -->
+        <div class="content-page" id="hotPage">
+            <div class="video-list" id="hotList"></div>
+            <div class="loading" id="hotLoading">加载中...</div>
+        </div>
+        <!-- 分区页 -->
+        <div class="content-page" id="categoryPage">
+            <div class="video-list" id="categoryList"></div>
+            <div class="loading" id="categoryLoading">加载中...</div>
+        </div>
+        <!-- 番剧页 -->
+        <div class="content-page" id="animePage">
+            <div class="video-list" id="animeList"></div>
+            <div class="loading" id="animeLoading">加载中...</div>
+        </div>
+        <!-- 影视页 -->
+        <div class="content-page" id="moviePage">
+            <div class="video-list" id="movieList"></div>
+            <div class="loading" id="movieLoading">加载中...</div>
+        </div>
+    </div>
 
     <!-- 底部导航 -->
     <div class="bottom-nav">
@@ -213,103 +301,223 @@
             <span>动态</span>
         </div>
         <div class="nav-item">
-            <div class="nav-icon"><i class="fa fa-video"></i></div>
+            <div class="nav-icon"><i class="fa fa-video-camera"></i></div>
             <span>媒体库</span>
         </div>
     </div>
 
     <script>
-        // 修复完整的视频数据
-        const videoData = [
-            { title: "BJ雷颖", author: "孤秒", play: "4537", time: "05:05", date: "3天前" },
-            { title: "命苦就命苦 还忧郁是天赋", author: "妮蔻-主Ren", play: "9168", time: "00:10", date: "11月22日" },
-            { title: "电动车两天烧了三个控制器，好在电机没坏", author: "初心维修阿凡", play: "3.5万", time: "04:01", date: "9月25日" },
-            { title: "最新 Quest3、3s全流程注册+激活+领60美刀", author: "爱玩VR的杰林", play: "7970", time: "01:33", date: "11月19日" },
-            { title: "【巫师】AI下一个要搞死的行业是什么", author: "巫师", play: "52.2万", time: "07:19", date: "23小时前" },
-            { title: "一根牙签就能给盒饭加热？二十年前的自热食品", author: "怀旧玩家", play: "1.9万", time: "03:03", date: "昨天" }
-        ];
+        // 视频数据（含多标签内容）
+        const videoData = {
+            live: [
+                { title: "原神新版本开荒直播", author: "原神阿婆主", play: "2.3万", danmu: "120", time: "01:20", cover: "https://p3-video.byteimg.com/tos-cn-p-0015/78901234567890123456789012345678~tplv-a9rns2rl98-image.image" },
+                { title: "LOL排位冲分实况", author: "联盟大神", play: "1.8万", danmu: "89", time: "02:15", cover: "https://p3-video.byteimg.com/tos-cn-p-0015/89012345678901234567890123456789~tplv-a9rns2rl98-image.image" },
+                { title: "美食制作：红烧肉教程", author: "吃货主播", play: "9800", danmu: "56", time: "00:45", cover: "https://p3-video.byteimg.com/tos-cn-p-0015/90123456789012345678901234567890~tplv-a9rns2rl98-image.image" },
+                { title: "赛博朋克2077游戏实况", author: "游戏菌", play: "1.2万", danmu: "78", time: "03:05", cover: "https://p3-video.byteimg.com/tos-cn-p-0015/01234567890123456789012345678901~tplv-a9rns2rl98-image.image" }
+            ],
+            recommend: [
+                { title: "BJ雷颖", author: "孤秒", play: "4537", danmu: "1", time: "05:05", cover: "https://p3-video.byteimg.com/tos-cn-p-0015/12345678901234567890123456789012~tplv-a9rns2rl98-image.image" },
+                { title: "命苦就命苦 还忧郁是天赋", author: "妮蔻-主Ren", play: "9168", danmu: "-", time: "00:10", cover: "https://p3-video.byteimg.com/tos-cn-p-0015/23456789012345678901234567890123~tplv-a9rns2rl98-image.image" },
+                { title: "电动车两天烧了三个控制器", author: "初心维修阿凡", play: "3.5万", danmu: "21", time: "04:01", cover: "https://p3-video.byteimg.com/tos-cn-p-0015/34567890123456789012345678901234~tplv-a9rns2rl98-image.image" },
+                { title: "最新 Quest3全流程注册+激活", author: "爱玩VR的杰林", play: "7970", danmu: "33", time: "01:33", cover: "https://p3-video.byteimg.com/tos-cn-p-0015/45678901234567890123456789012345~tplv-a9rns2rl98-image.image" }
+            ],
+            hot: [
+                { title: "新涂装强的可怕", author: "小正义teio ku", play: "1.2万", danmu: "26", time: "00:22", cover: "https://p3-video.byteimg.com/tos-cn-p-0015/11234567890123456789012345678901~tplv-a9rns2rl98-image.image" },
+                { title: "【毕导】而只有开", author: "毕导", play: "54.4万", danmu: "1200", time: "12:21", cover: "https://p3-video.byteimg.com/tos-cn-p-0015/21234567890123456789012345678901~tplv-a9rns2rl98-image.image" }
+            ],
+            category: [
+                { title: "永劫无间教学", author: "永劫大神", play: "10.2万", danmu: "500", time: "15:30", cover: "https://p3-video.byteimg.com/tos-cn-p-0015/51234567890123456789012345678901~tplv-a9rns2rl98-image.image" },
+                { title: "沉浸式打扫房间", author: "清洁达人", play: "7.8万", danmu: "300", time: "20:15", cover: "https://p3-video.byteimg.com/tos-cn-p-0015/61234567890123456789012345678901~tplv-a9rns2rl98-image.image" }
+            ],
+            anime: [
+                { title: "某科学的深空海", author: "动漫菌", play: "23.5万", danmu: "1000", time: "24:10", cover: "https://p3-video.byteimg.com/tos-cn-p-0015/91234567890123456789012345678901~tplv-a9rns2rl98-image.image" },
+                { title: "火影忍者解说", author: "火影迷", play: "18.7万", danmu: "900", time: "18:25", cover: "https://p3-video.byteimg.com/tos-cn-p-0015/02234567890123456789012345678901~tplv-a9rns2rl98-image.image" }
+            ],
+            movie: [
+                { title: "流浪地球3解说", author: "影评人", play: "67.8万", danmu: "3000", time: "15:40", cover: "https://p3-video.byteimg.com/tos-cn-p-0015/32234567890123456789012345678901~tplv-a9rns2rl98-image.image" },
+                { title: "肖申克的救赎", author: "电影迷", play: "38.5万", danmu: "1800", time: "20:30", cover: "https://p3-video.byteimg.com/tos-cn-p-0015/42234567890123456789012345678901~tplv-a9rns2rl98-image.image" }
+            ]
+        };
 
-        // 页码和加载状态
-        let page = 1;
-        let isLoading = false;
-        const videoList = document.getElementById('videoList');
-        const loading = document.getElementById('loading');
+        // 核心变量
+        const tabBar = document.getElementById('tabBar');
+        const contentWrapper = document.getElementById('contentWrapper');
         const tabItems = document.querySelectorAll('.tab-item');
+        const contentPages = document.querySelectorAll('.content-page');
+        let currentIndex = 0;
+        let startX = 0;
+        let isSliding = false;
+        let startScrollLeft = 0;
+        // 分页加载变量
+        const pageSize = 4;
+        const loadStatus = { live: 1, recommend: 1, hot: 1, category: 1, anime: 1, movie: 1 };
 
-        // 生成视频卡片（优化模板语法）
-        function renderVideoCards(data) {
-            data.forEach(video => {
+        // 渲染视频列表（整合图片+文字）
+        function renderVideoList(listId, data, start = 0, end = pageSize) {
+            const list = document.getElementById(listId);
+            const sliceData = data.slice(start, end);
+            sliceData.forEach(video => {
                 const card = document.createElement('div');
                 card.className = 'video-card';
+                const danmuHtml = video.danmu === "-" ? "-" : `<i class="fa fa-comment-o"></i>${video.danmu}`;
                 card.innerHTML = `
                     <div class="video-cover">
+                        <img src="${video.cover}" alt="${video.title}" onerror="this.style.display='none'">
                         <div class="video-time">${video.time}</div>
                     </div>
                     <div class="video-info">
                         <div class="video-title">${video.title}</div>
                         <div class="video-author">${video.author}</div>
                         <div class="video-data">
-                            <i class="fa fa-play-circle-o" style="margin-right: 3px;"></i>${video.play}
-                            <span style="margin-left: 5px;">${video.date}</span>
+                            <span><i class="fa fa-play-circle-o"></i>${video.play}</span>
+                            <span>${danmuHtml}</span>
                         </div>
                     </div>
                 `;
-                videoList.appendChild(card);
+                list.appendChild(card);
             });
-        }
-
-        // 初始加载第一页
-        renderVideoCards(videoData);
-        loading.textContent = '上滑加载更多';
-
-        // 标签切换功能（新增，优化交互）
-        tabItems.forEach(item => {
-            item.addEventListener('click', () => {
-                tabItems.forEach(tab => tab.classList.remove('active'));
-                item.classList.add('active');
-                // 切换标签时重置列表和加载状态
-                videoList.innerHTML = '';
-                page = 1;
-                isLoading = false;
-                renderVideoCards(videoData);
-                loading.textContent = '上滑加载更多';
-            });
-        });
-
-        // 滚动加载更多（优化滚动计算逻辑）
-        window.addEventListener('scroll', () => {
-            const scrollTop = document.documentElement.scrollTop || document.body.scrollTop;
-            const scrollHeight = document.documentElement.scrollHeight || document.body.scrollHeight;
-            const clientHeight = document.documentElement.clientHeight || window.innerHeight;
-            const scrollBottom = scrollHeight - scrollTop - clientHeight;
-            
-            if (scrollBottom < 100 && !isLoading && loading.textContent !== '没有更多内容了') {
-                loadMore();
+            // 没有更多数据时隐藏加载提示
+            if (end >= data.length) {
+                document.getElementById(`${listId.replace('List', 'Loading')}`).textContent = "没有更多了";
+                loadStatus[listId.replace('List', '')] = 0; // 标记为无更多
             }
+        }
+
+        // 初始化当前页视频
+        function initCurrentPage(index) {
+            const tabKey = ['live', 'recommend', 'hot', 'category', 'anime', 'movie'][index];
+            const listId = `${tabKey}List`;
+            // 仅首次加载时渲染
+            if (document.getElementById(listId).children.length === 0) {
+                renderVideoList(listId, videoData[tabKey]);
+            }
+        }
+
+        // 调整标签栏位置
+        function adjustTabBarPosition(index) {
+            const tabItem = tabItems[index];
+            const containerWidth = document.querySelector('.tab-container').offsetWidth;
+            const targetLeft = tabItem.offsetLeft - (containerWidth - tabItem.offsetWidth) / 2;
+            const maxLeft = tabBar.offsetWidth - containerWidth;
+            tabBar.style.left = -Math.max(0, Math.min(targetLeft, maxLeft)) + 'px';
+        }
+
+        // 切换标签和页面
+        function switchTabAndPage(index) {
+            if (index < 0 || index >= tabItems.length || isSliding) return;
+            isSliding = true;
+
+            // 更新标签状态
+            tabItems.forEach(item => item.classList.remove('active'));
+            tabItems[index].classList.add('active');
+            adjustTabBarPosition(index);
+
+            // 滑动内容页
+            contentWrapper.scrollLeft = index * window.innerWidth;
+
+            // 初始化当前页视频
+            initCurrentPage(index);
+
+            // 解锁
+            setTimeout(() => {
+                currentIndex = index;
+                isSliding = false;
+            }, 200);
+        }
+
+        // 分页加载更多
+        function loadMore(index) {
+            const tabKey = ['live', 'recommend', 'hot', 'category', 'anime', 'movie'][index];
+            const listId = `${tabKey}List`;
+            const list = document.getElementById(listId);
+            const currentLength = list.children.length;
+            // 有更多数据且未加载中
+            if (loadStatus[tabKey] === 1) {
+                document.getElementById(`${tabKey}Loading`).textContent = "加载中...";
+                // 模拟接口延迟
+                setTimeout(() => {
+                    renderVideoList(listId, videoData[tabKey], currentLength, currentLength + pageSize);
+                }, 800);
+            }
+        }
+
+        // 监听内容页滚动加载
+        contentPages.forEach((page, index) => {
+            page.addEventListener('scroll', () => {
+                const scrollTop = page.scrollTop;
+                const scrollHeight = page.scrollHeight;
+                const clientHeight = page.clientHeight;
+                // 滚动到底部100px内触发加载
+                if (scrollTop + clientHeight >= scrollHeight - 100) {
+                    loadMore(index);
+                }
+            });
         });
 
-        // 加载更多数据
-        function loadMore() {
-            isLoading = true;
-            loading.textContent = '加载中...';
-            
-            setTimeout(() => {
-                page++;
-                // 模拟分页数据
-                const moreData = videoData.map(item => ({
-                    ...item,
-                    title: `${item.title}（第${page}页）`
-                }));
-                renderVideoCards(moreData);
-                
-                isLoading = false;
-                if (page > 3) {
-                    loading.textContent = '没有更多内容了';
-                } else {
-                    loading.textContent = '上滑加载更多';
+        // 手势滑动事件
+        contentWrapper.addEventListener('touchstart', (e) => {
+            startX = e.touches[0].clientX;
+            startScrollLeft = contentWrapper.scrollLeft;
+            isSliding = false;
+            e.preventDefault();
+        }, { passive: false });
+
+        contentWrapper.addEventListener('touchmove', (e) => {
+            if (isSliding) return;
+            const moveX = e.touches[0].clientX;
+            const diffX = moveX - startX;
+            contentWrapper.scrollLeft = startScrollLeft - diffX;
+        }, { passive: false });
+
+        contentWrapper.addEventListener('touchend', (e) => {
+            const endX = e.changedTouches[0].clientX;
+            const diffX = endX - startX;
+            const pageWidth = window.innerWidth;
+
+            // 滑动速度判断
+            const velocity = Math.abs(diffX) / (e.timeStamp - e.changedTouches[0].startTime);
+            let targetIndex = currentIndex;
+
+            if (diffX > 50 || (diffX > 0 && velocity > 0.5)) {
+                targetIndex = currentIndex - 1;
+            } else if (diffX < -50 || (diffX < 0 && velocity > 0.5)) {
+                targetIndex = currentIndex + 1;
+            } else {
+                // 回弹到原页面
+                contentWrapper.scrollLeft = currentIndex * pageWidth;
+                isSliding = false;
+                return;
+            }
+
+            switchTabAndPage(targetIndex);
+        });
+
+        // 标签点击事件
+        tabItems.forEach((item, index) => {
+            item.addEventListener('click', () => {
+                switchTabAndPage(index);
+            });
+        });
+
+        // 底部导航点击事件
+        const navItems = document.querySelectorAll('.nav-item');
+        navItems.forEach((item, index) => {
+            item.addEventListener('click', () => {
+                if (item.classList.contains('active')) return;
+                navItems.forEach(nav => nav.classList.remove('active'));
+                item.classList.add('active');
+                // 可扩展底部导航功能（如跳转动态页）
+                if (index === 1) {
+                    alert('进入动态页面');
                 }
-            }, 1000);
-        }
+            });
+        });
+
+        // 初始化首页
+        window.addEventListener('load', () => {
+            initCurrentPage(currentIndex);
+            adjustTabBarPosition(currentIndex);
+        });
     </script>
 </body>
 </html>
