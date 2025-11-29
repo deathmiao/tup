@@ -135,13 +135,19 @@
             gap: 10px;
             contain: layout paint;
         }
-        /* 视频卡片（整合双方样式优势） */
+        /* 视频卡片（添加点击反馈+播放图标） */
         .video-card {
             background-color: #fff;
             border-radius: 8px;
             overflow: hidden;
             -webkit-tap-highlight-color: transparent;
             box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+            cursor: pointer;
+            transition: transform 0.1s ease;
+            position: relative;
+        }
+        .video-card:active {
+            transform: scale(0.98); /* 点击按压效果 */
         }
         .video-cover {
             width: 100%;
@@ -149,6 +155,27 @@
             background: linear-gradient(45deg, #fb7299, #00a1d6);
             position: relative;
             transform: translateZ(0);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .video-cover img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .video-cover .play-icon {
+            position: absolute;
+            width: 36px;
+            height: 36px;
+            background-color: rgba(0,0,0,0.6);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-size: 16px;
+            z-index: 1;
         }
         .video-time {
             position: absolute;
@@ -159,6 +186,7 @@
             font-size: 11px;
             padding: 2px 5px;
             border-radius: 3px;
+            z-index: 1;
         }
         .video-info {
             padding: 8px;
@@ -230,6 +258,32 @@
         .nav-icon {
             font-size: 20px;
             margin-bottom: 2px;
+        }
+        /* 视频播放层（新增） */
+        .video-player-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #000;
+            z-index: 999;
+            display: none;
+            flex-direction: column;
+        }
+        .close-player {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: #fff;
+            font-size: 24px;
+            z-index: 1000;
+            cursor: pointer;
+        }
+        #video-player {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
         }
     </style>
     <link rel="stylesheet" href="https://cdn.bootcdn.net/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -306,36 +360,42 @@
         </div>
     </div>
 
+    <!-- 视频播放层（新增） -->
+    <div class="video-player-overlay" id="videoPlayerOverlay">
+        <div class="close-player" id="closePlayer"><i class="fa fa-times"></i></div>
+        <video id="video-player" controls autoplay></video>
+    </div>
+
     <script>
-        // 视频数据（含多标签内容）
+        // 视频数据（含多标签内容，新增视频URL字段）
         const videoData = {
             live: [
-                { title: "原神新版本开荒直播", author: "原神阿婆主", play: "2.3万", danmu: "120", time: "01:20", cover: "S51120-20012191-1.mp4" },
-                { title: "LOL排位冲分实况", author: "联盟大神", play: "1.8万", danmu: "89", time: "02:15", cover: "https://p3-video.byteimg.com/tos-cn-p-0015/89012345678901234567890123456789~tplv-a9rns2rl98-image.image" },
-                { title: "美食制作：红烧肉教程", author: "吃货主播", play: "9800", danmu: "56", time: "00:45", cover: "https://p3-video.byteimg.com/tos-cn-p-0015/90123456789012345678901234567890~tplv-a9rns2rl98-image.image" },
-                { title: "赛博朋克2077游戏实况", author: "游戏菌", play: "1.2万", danmu: "78", time: "03:05", cover: "https://p3-video.byteimg.com/tos-cn-p-0015/01234567890123456789012345678901~tplv-a9rns2rl98-image.image" }
+                { title: "原神新版本开荒直播", author: "原神阿婆主", play: "2.3万", danmu: "120", time: "01:20", cover: "https://p3-video.byteimg.com/tos-cn-p-0015/78901234567890123456789012345678~tplv-a9rns2rl98-image.image", url: "https://example.com/live1.mp4" },
+                { title: "LOL排位冲分实况", author: "联盟大神", play: "1.8万", danmu: "89", time: "02:15", cover: "https://p3-video.byteimg.com/tos-cn-p-0015/89012345678901234567890123456789~tplv-a9rns2rl98-image.image", url: "https://example.com/live2.mp4" },
+                { title: "美食制作：红烧肉教程", author: "吃货主播", play: "9800", danmu: "56", time: "00:45", cover: "https://p3-video.byteimg.com/tos-cn-p-0015/90123456789012345678901234567890~tplv-a9rns2rl98-image.image", url: "https://example.com/live3.mp4" },
+                { title: "赛博朋克2077游戏实况", author: "游戏菌", play: "1.2万", danmu: "78", time: "03:05", cover: "https://p3-video.byteimg.com/tos-cn-p-0015/01234567890123456789012345678901~tplv-a9rns2rl98-image.image", url: "https://example.com/live4.mp4" }
             ],
             recommend: [
-                { title: "BJ雷颖", author: "孤秒", play: "4537", danmu: "1", time: "05:05", cover: "https://p3-video.byteimg.com/tos-cn-p-0015/12345678901234567890123456789012~tplv-a9rns2rl98-image.image" },
-                { title: "命苦就命苦 还忧郁是天赋", author: "妮蔻-主Ren", play: "9168", danmu: "-", time: "00:10", cover: "https://p3-video.byteimg.com/tos-cn-p-0015/23456789012345678901234567890123~tplv-a9rns2rl98-image.image" },
-                { title: "电动车两天烧了三个控制器", author: "初心维修阿凡", play: "3.5万", danmu: "21", time: "04:01", cover: "https://p3-video.byteimg.com/tos-cn-p-0015/34567890123456789012345678901234~tplv-a9rns2rl98-image.image" },
-                { title: "最新 Quest3全流程注册+激活", author: "爱玩VR的杰林", play: "7970", danmu: "33", time: "01:33", cover: "https://p3-video.byteimg.com/tos-cn-p-0015/45678901234567890123456789012345~tplv-a9rns2rl98-image.image" }
+                { title: "BJ雷颖", author: "孤秒", play: "4537", danmu: "1", time: "05:05", cover: "https://p3-video.byteimg.com/tos-cn-p-0015/12345678901234567890123456789012~tplv-a9rns2rl98-image.image", url: "https://example.com/rec1.mp4" },
+                { title: "命苦就命苦 还忧郁是天赋", author: "妮蔻-主Ren", play: "9168", danmu: "-", time: "00:10", cover: "https://p3-video.byteimg.com/tos-cn-p-0015/23456789012345678901234567890123~tplv-a9rns2rl98-image.image", url: "https://example.com/rec2.mp4" },
+                { title: "电动车两天烧了三个控制器", author: "初心维修阿凡", play: "3.5万", danmu: "21", time: "04:01", cover: "https://p3-video.byteimg.com/tos-cn-p-0015/34567890123456789012345678901234~tplv-a9rns2rl98-image.image", url: "https://example.com/rec3.mp4" },
+                { title: "最新 Quest3全流程注册+激活", author: "爱玩VR的杰林", play: "7970", danmu: "33", time: "01:33", cover: "https://p3-video.byteimg.com/tos-cn-p-0015/45678901234567890123456789012345~tplv-a9rns2rl98-image.image", url: "https://example.com/rec4.mp4" }
             ],
             hot: [
-                { title: "新涂装强的可怕", author: "小正义teio ku", play: "1.2万", danmu: "26", time: "00:22", cover: "https://p3-video.byteimg.com/tos-cn-p-0015/11234567890123456789012345678901~tplv-a9rns2rl98-image.image" },
-                { title: "【毕导】而只有开", author: "毕导", play: "54.4万", danmu: "1200", time: "12:21", cover: "https://p3-video.byteimg.com/tos-cn-p-0015/21234567890123456789012345678901~tplv-a9rns2rl98-image.image" }
+                { title: "新涂装强的可怕", author: "小正义teio ku", play: "1.2万", danmu: "26", time: "00:22", cover: "https://p3-video.byteimg.com/tos-cn-p-0015/11234567890123456789012345678901~tplv-a9rns2rl98-image.image", url: "https://example.com/hot1.mp4" },
+                { title: "【毕导】而只有开", author: "毕导", play: "54.4万", danmu: "1200", time: "12:21", cover: "https://p3-video.byteimg.com/tos-cn-p-0015/21234567890123456789012345678901~tplv-a9rns2rl98-image.image", url: "https://example.com/hot2.mp4" }
             ],
             category: [
-                { title: "永劫无间教学", author: "永劫大神", play: "10.2万", danmu: "500", time: "15:30", cover: "https://p3-video.byteimg.com/tos-cn-p-0015/51234567890123456789012345678901~tplv-a9rns2rl98-image.image" },
-                { title: "沉浸式打扫房间", author: "清洁达人", play: "7.8万", danmu: "300", time: "20:15", cover: "https://p3-video.byteimg.com/tos-cn-p-0015/61234567890123456789012345678901~tplv-a9rns2rl98-image.image" }
+                { title: "永劫无间教学", author: "永劫大神", play: "10.2万", danmu: "500", time: "15:30", cover: "https://p3-video.byteimg.com/tos-cn-p-0015/51234567890123456789012345678901~tplv-a9rns2rl98-image.image", url: "https://example.com/cat1.mp4" },
+                { title: "沉浸式打扫房间", author: "清洁达人", play: "7.8万", danmu: "300", time: "20:15", cover: "https://p3-video.byteimg.com/tos-cn-p-0015/61234567890123456789012345678901~tplv-a9rns2rl98-image.image", url: "https://example.com/cat2.mp4" }
             ],
             anime: [
-                { title: "某科学的深空海", author: "动漫菌", play: "23.5万", danmu: "1000", time: "24:10", cover: "https://p3-video.byteimg.com/tos-cn-p-0015/91234567890123456789012345678901~tplv-a9rns2rl98-image.image" },
-                { title: "火影忍者解说", author: "火影迷", play: "18.7万", danmu: "900", time: "18:25", cover: "https://p3-video.byteimg.com/tos-cn-p-0015/02234567890123456789012345678901~tplv-a9rns2rl98-image.image" }
+                { title: "某科学的深空海", author: "动漫菌", play: "23.5万", danmu: "1000", time: "24:10", cover: "https://p3-video.byteimg.com/tos-cn-p-0015/91234567890123456789012345678901~tplv-a9rns2rl98-image.image", url: "https://example.com/anime1.mp4" },
+                { title: "火影忍者解说", author: "火影迷", play: "18.7万", danmu: "900", time: "18:25", cover: "https://p3-video.byteimg.com/tos-cn-p-0015/02234567890123456789012345678901~tplv-a9rns2rl98-image.image", url: "https://example.com/anime2.mp4" }
             ],
             movie: [
-                { title: "流浪地球3解说", author: "影评人", play: "67.8万", danmu: "3000", time: "15:40", cover: "https://p3-video.byteimg.com/tos-cn-p-0015/32234567890123456789012345678901~tplv-a9rns2rl98-image.image" },
-                { title: "肖申克的救赎", author: "电影迷", play: "38.5万", danmu: "1800", time: "20:30", cover: "https://p3-video.byteimg.com/tos-cn-p-0015/42234567890123456789012345678901~tplv-a9rns2rl98-image.image" }
+                { title: "流浪地球3解说", author: "影评人", play: "67.8万", danmu: "3000", time: "15:40", cover: "https://p3-video.byteimg.com/tos-cn-p-0015/32234567890123456789012345678901~tplv-a9rns2rl98-image.image", url: "https://example.com/movie1.mp4" },
+                { title: "肖申克的救赎", author: "电影迷", play: "38.5万", danmu: "1800", time: "20:30", cover: "https://p3-video.byteimg.com/tos-cn-p-0015/42234567890123456789012345678901~tplv-a9rns2rl98-image.image", url: "https://example.com/movie2.mp4" }
             ]
         };
 
@@ -351,18 +411,26 @@
         // 分页加载变量
         const pageSize = 4;
         const loadStatus = { live: 1, recommend: 1, hot: 1, category: 1, anime: 1, movie: 1 };
+        // 播放层变量
+        const videoPlayerOverlay = document.getElementById('videoPlayerOverlay');
+        const videoPlayer = document.getElementById('video-player');
+        const closePlayer = document.getElementById('closePlayer');
 
-        // 渲染视频列表（整合图片+文字）
+        // 渲染视频列表（新增播放图标和数据存储）
         function renderVideoList(listId, data, start = 0, end = pageSize) {
             const list = document.getElementById(listId);
             const sliceData = data.slice(start, end);
             sliceData.forEach(video => {
                 const card = document.createElement('div');
                 card.className = 'video-card';
+                // 存储视频URL和信息到卡片元素
+                card.dataset.videoUrl = video.url;
+                card.dataset.videoTitle = video.title;
                 const danmuHtml = video.danmu === "-" ? "-" : `<i class="fa fa-comment-o"></i>${video.danmu}`;
                 card.innerHTML = `
                     <div class="video-cover">
                         <img src="${video.cover}" alt="${video.title}" onerror="this.style.display='none'">
+                        <div class="play-icon"><i class="fa fa-play"></i></div>
                         <div class="video-time">${video.time}</div>
                     </div>
                     <div class="video-info">
@@ -375,6 +443,11 @@
                     </div>
                 `;
                 list.appendChild(card);
+
+                // 绑定点击事件
+                card.addEventListener('click', () => {
+                    openVideoPlayer(video.url, video.title);
+                });
             });
             // 没有更多数据时隐藏加载提示
             if (end >= data.length) {
@@ -382,6 +455,23 @@
                 loadStatus[listId.replace('List', '')] = 0; // 标记为无更多
             }
         }
+
+        // 打开视频播放器（新增）
+        function openVideoPlayer(videoUrl, videoTitle) {
+            if (!videoUrl) return;
+            videoPlayer.src = videoUrl;
+            videoPlayer.title = videoTitle;
+            videoPlayerOverlay.style.display = 'flex';
+            document.body.style.overflow = 'hidden'; // 禁止背景滚动
+        }
+
+        // 关闭视频播放器（新增）
+        closePlayer.addEventListener('click', () => {
+            videoPlayerOverlay.style.display = 'none';
+            videoPlayer.pause();
+            videoPlayer.src = ''; // 清空视频源
+            document.body.style.overflow = ''; // 恢复滚动
+        });
 
         // 初始化当前页视频
         function initCurrentPage(index) {
